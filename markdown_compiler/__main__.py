@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
 
     # call the main function
-    convert_file(args.input_file, False)
+    convert_file(args.input_file, args.add_css)
 
 
 if __name__ == '__main__':
