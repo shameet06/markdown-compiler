@@ -3,7 +3,17 @@ This file contains functions that work on entire documents at a time
 (and not line-by-line).
 '''
 
-from markdown_compiler.util.line_functions import *
+from markdown_compiler.util.line_functions import (
+    compile_headers,
+    compile_strikethrough,
+    compile_bold_stars,
+    compile_bold_underscore,
+    compile_italic_star,
+    compile_italic_underscore,
+    compile_code_inline,
+    compile_images,
+    compile_links,
+)
 
 
 def compile_lines(text):
@@ -20,6 +30,7 @@ def compile_lines(text):
     The first set of doctests below show how this function adds <p> tags and calls the functions above.
     Once you implement the functions above correctly,
     then this first set of doctests will pass.
+
 
     NOTE:
     For your assignment, the most important thing to take away from these test cases is how multiline tests can be formatted.
@@ -133,16 +144,28 @@ def compile_lines(text):
     lines = text.split('\n')
     new_lines = []
     in_paragraph = False
+    in_code_block = False
     for line in lines:
+        if line.strip() == '```':
+            if in_code_block:
+                new_lines.append('</pre>')
+                in_code_block = False
+            else:
+                new_lines.append('<pre>')
+                in_code_block = True
+            continue
+        if in_code_block:
+            new_lines.append(line)
+            continue
         line = line.strip()
-        if line=='':
+        if line == '':
             if in_paragraph:
-                line='</p>'
+                line = '</p>'
                 in_paragraph = False
         else:
             if line[0] != '#' and not in_paragraph:
                 in_paragraph = True
-                line = '<p>\n'+line
+                line = '<p>\n' + line
             line = compile_headers(line)
             line = compile_strikethrough(line)
             line = compile_bold_stars(line)
@@ -188,10 +211,10 @@ def markdown_to_html(markdown, add_css):
 <link rel="stylesheet" href="https://izbicki.me/css/code.css" />
 <link rel="stylesheet" href="https://izbicki.me/css/default.css" />
         '''
-    html+='''
+    html += '''
 </head>
 <body>
-    '''+compile_lines(markdown)+'''
+    ''' + compile_lines(markdown) + '''
 </body>
 </html>
     '''
@@ -199,6 +222,7 @@ def markdown_to_html(markdown, add_css):
 
 
 def minify(html):
+
     r'''
     Remove redundant whitespace (spaces and newlines) from the input HTML,
     and convert all whitespace characters into spaces.
@@ -225,7 +249,8 @@ def minify(html):
     >>> minify('a\n\n\n\n\n\n\n\n\n\n\n\n\n\nb\n\n\n\n\n\n\n\n\n\n')
     'a b'
     '''
-    return html
+    words = html.split()
+    return ' '.join(words)
 
 
 def convert_file(input_file, add_css):
@@ -254,5 +279,5 @@ def convert_file(input_file, add_css):
     html = minify(html)
 
     # write the output file
-    with open(input_file[:-2]+'html', 'w') as f:
+    with open(input_file[:-2] + 'html', 'w') as f:
         f.write(html)
