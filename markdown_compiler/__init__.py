@@ -170,7 +170,6 @@ def compile_lines(text):
     in_list = False
 
     for line in lines:
-        
         if line.strip() == '```':
             if in_list:
                 new_lines.append('</ol>')
@@ -184,19 +183,16 @@ def compile_lines(text):
                 in_code_block = True
             continue
 
-        
         if in_code_block:
             new_lines.append(line)
             continue
 
         line = line.strip()
 
-        
         number_end = 0
         while number_end < len(line) and line[number_end] in '0123456789':
             number_end = number_end + 1
 
-        
         is_list_item = (number_end > 0 and line[number_end:number_end + 2] == '. ')
 
         if is_list_item:
@@ -208,11 +204,9 @@ def compile_lines(text):
                 new_lines.append('<ol>')
                 in_list = True
 
-            
             line = line[number_end + 2:]
 
         else:
-            
             if in_list:
                 new_lines.append('</ol>')
                 in_list = False
@@ -231,7 +225,6 @@ def compile_lines(text):
 
             line = compile_headers(line)
 
-        
         line = compile_strikethrough(line)
         line = compile_bold_stars(line)
         line = compile_bold_underscore(line)
@@ -246,7 +239,6 @@ def compile_lines(text):
 
         new_lines.append(line)
 
-    
     if in_list:
         new_lines.append('</ol>')
 
@@ -344,18 +336,14 @@ def convert_file(input_file, add_css):
     But we can still be confident that this function will work because of the extensive tests on the "helper functions" that this function depends on.
     '''
 
-    
     if input_file[-3:] != '.md':
         raise ValueError('input_file does not end in .md')
 
-   
     with open(input_file, 'r') as f:
         markdown = f.read()
 
-    
     html = markdown_to_html(markdown, add_css)
     html = minify(html)
 
-    
     with open(input_file[:-2] + 'html', 'w') as f:
         f.write(html)
