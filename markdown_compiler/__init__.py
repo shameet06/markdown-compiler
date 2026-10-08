@@ -127,7 +127,6 @@ def compile_lines(text):
     print(this_is_a_variable)
     </pre>
     </p>
-
     >>> print(compile_lines("""
     ... ```
     ... for i in range(10):
@@ -140,13 +139,43 @@ def compile_lines(text):
         print('i=',i)
     </pre>
     <BLANKLINE>
+    >>> print(compile_lines("1. Pie"))
+    <ol>
+    <li>Pie</li>
+    </ol>
+
+    >>> print(compile_lines("1. Apple Pie\n2. Pumpkin Pie\n3. Choclate Pie"))
+    <ol>
+    <li>Apple Pie</li>
+    <li>Pumpkin Pie</li>
+    <li>Choclate Pie</li>
+    </ol>
+
+    >>> print(compile_lines("Paragraph about Pie!\n1. Apple Pie\n2. Choclate Pie\nAnother Paragraph about Pie!"))
+    <p>
+    Paragraph about Pie!
+    </p>
+    <ol>
+    <li>Apple Pie</li>
+    <li>Choclate Pie</li>
+    </ol>
+    <p>
+    Another Paragraph about Pie!
+    </p>
     '''
     lines = text.split('\n')
     new_lines = []
     in_paragraph = False
     in_code_block = False
+    in_list = False
+
     for line in lines:
+        # Handle opening and closing code fences.
         if line.strip() == '```':
+            if in_list:
+                new_lines.append('</ol>')
+                in_list = False
+
             if in_code_block:
                 new_lines.append('</pre>')
                 in_code_block = False
@@ -154,28 +183,76 @@ def compile_lines(text):
                 new_lines.append('<pre>')
                 in_code_block = True
             continue
+
+        # Preserve code-block contents, including indentation.
         if in_code_block:
             new_lines.append(line)
             continue
+
         line = line.strip()
-        if line == '':
+
+        # Count the digits at the beginning of the line.
+        number_end = 0
+        while number_end < len(line) and line[number_end] in '0123456789':
+            number_end = number_end + 1
+
+        # A numbered item begins with digits followed by ". ".
+        is_list_item = (number_end > 0 and line[number_end:number_end + 2] == '. ')
+
+        if is_list_item:
             if in_paragraph:
-                line = '</p>'
+                new_lines.append('</p>')
                 in_paragraph = False
+
+            if not in_list:
+                new_lines.append('<ol>')
+                in_list = True
+
+            # Remove the number, period, and following space.
+            line = line[number_end + 2:]
+
         else:
+            # An ordinary line or blank line ends the list.
+            if in_list:
+                new_lines.append('</ol>')
+                in_list = False
+
+            if line == '':
+                if in_paragraph:
+                    new_lines.append('</p>')
+                    in_paragraph = False
+                else:
+                    new_lines.append('')
+                continue
+
             if line[0] != '#' and not in_paragraph:
+                new_lines.append('<p>')
                 in_paragraph = True
-                line = '<p>\n' + line
+
             line = compile_headers(line)
-            line = compile_strikethrough(line)
-            line = compile_bold_stars(line)
-            line = compile_bold_underscore(line)
-            line = compile_italic_star(line)
-            line = compile_italic_underscore(line)
-            line = compile_code_inline(line)
-            line = compile_images(line)
-            line = compile_links(line)
+
+        # Format both ordinary text and list-item text.
+        line = compile_strikethrough(line)
+        line = compile_bold_stars(line)
+        line = compile_bold_underscore(line)
+        line = compile_italic_star(line)
+        line = compile_italic_underscore(line)
+        line = compile_code_inline(line)
+        line = compile_images(line)
+        line = compile_links(line)
+
+        if is_list_item:
+            line = '<li>' + line + '</li>'
+
         new_lines.append(line)
+
+    # Close any list or paragraph still open at the end.
+    if in_list:
+        new_lines.append('</ol>')
+
+    if in_paragraph:
+        new_lines.append('</p>')
+
     new_text = '\n'.join(new_lines)
     return new_text
 
@@ -184,6 +261,7 @@ def markdown_to_html(markdown, add_css):
     '''
     Convert the input markdown into valid HTML,
     optionally adding CSS formatting.
+
 
     NOTE:
     This function is separated out from the `compile_lines` function so that the doctests are much simpler.
